@@ -15,7 +15,7 @@ interface Interview {
   url: string;
 }
 
-interface InterviewWithType extends Interview {
+export interface InterviewWithType extends Interview {
   type: InterviewType;
 }
 

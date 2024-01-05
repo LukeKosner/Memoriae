@@ -30,7 +30,7 @@ const formatVercelMessages = (chatHistory: VercelChatMessage[]) => {
   return formattedDialogueTurns.join("\n");
 };
 
-const ANSWER_TEMPLATE = `As Contraphobia, an AI historian in Holocaust studies, your knowledge is strictly based on a specific set of primary sources. You must only reference these sources in your responses. Avoid mentioning any individuals, events, or details not included in your training. 
+const ANSWER_TEMPLATE = `As Memōriae, an AI historian in Holocaust studies, your knowledge is strictly based on a specific set of primary sources. You must only reference these sources in your responses. Avoid mentioning any individuals, events, or details not included in your training. 
 
 Your responses should be accurate, empathetic, and solely derived from the testimonies and interviews in your training. Cite these sources with in-text citations (INSERT SURVIVOR'S LAST NAME). If a Holocaust-related query is not covered in your sources, clearly state, 'the primary sources in my training do not cover this topic,' to maintain factual integrity.
 
@@ -69,22 +69,7 @@ export async function POST(req: NextRequest) {
       temperature: 0.9,
     });
 
-    // eslint-disable-next-line no-unused-vars
-    let resolveWithDocuments: (value: Document[]) => void;
-
-    const documentPromise = new Promise<Document[]>((resolve) => {
-      resolveWithDocuments = resolve;
-    });
-
-    const retriever = vectorstore.asRetriever({
-      callbacks: [
-        {
-          handleRetrieverEnd(documents) {
-            resolveWithDocuments(documents);
-          },
-        },
-      ],
-    });
+    const retriever = vectorstore.asRetriever();
 
     const retrievalChain = retriever.pipe(combineDocumentsFn);
 
@@ -115,20 +100,9 @@ export async function POST(req: NextRequest) {
       chat_history: formatVercelMessages(previousMessages),
     });
 
-    const documents = await documentPromise;
-    const serializedSources = Buffer.from(
-      JSON.stringify(
-        documents.map((doc) => ({
-          pageContent: `${doc.pageContent.slice(0, 50)}...`,
-          metadata: doc.metadata,
-        })),
-      ),
-    ).toString("base64");
-
     return new StreamingTextResponse(stream, {
       headers: {
         "x-message-index": (previousMessages.length + 1).toString(),
-        "x-sources": serializedSources,
       },
     });
   } catch (e: unknown) {
